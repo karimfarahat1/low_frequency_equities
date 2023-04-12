@@ -38,10 +38,9 @@ class expected_returns:
                 cloned_model = deepcopy(model)
                 self.models[time] = cloned_model.fit(features.loc[pd.IndexSlice[training_window,:]], returns.loc[pd.IndexSlice[training_window, :]])
         
-    def forecast(self, features, aggregate = False, weights = None):
+    def forecast(self, features, aggregate = True, weights = None):
         """
-        Produces one-step ahead forecasts of returns. Supports prediction via panel regression or taking linear combinations of predictions from 
-        a series of models fit to the cross-section. Does not support several step ahead forecasts. 
+        Supports prediction via panel regression or taking linear combinations of predictions from a series of models fit to the cross-section.
         
         Arguments:
             features: model inputs
@@ -49,7 +48,7 @@ class expected_returns:
             weights: weights used when averaging over each model output  
         """
         
-        if aggregate:
+        if not aggregate:
             current_model = next(reversed(self.models.keys()))
             
             return self.models[current_model].predict(features)

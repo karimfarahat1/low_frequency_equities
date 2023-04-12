@@ -12,7 +12,7 @@ from sklearn.pipeline import Pipeline
 Loading data
 """
 
-data_dir = "../data/factors"
+data_dir = "../data"
 
 data = pd.read_csv(data_dir + "\\" + str(1) + ".csv")
 
