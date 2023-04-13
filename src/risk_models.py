@@ -18,12 +18,7 @@ class risk_models:
         
         if factor_risk_model:
             for key in models:
-                try:
-                    coefs = models[key].coef_.flatten()
-                except:
-                    coefs = models[key]['model'].coef_.flatten()
-                    
-                self.factor_returns[key] = coefs
+                self.store_factor_returns(models[key], key)
         
         if type(features) != type(None) and type(returns) != type(None):
             self.return_residuals = pd.DataFrame([np.nan] * len(returns.index), index = returns.index, columns = ['resid'])
@@ -57,7 +52,8 @@ class risk_models:
             features: Pandas dataframe with multi-index of (TimeStamp, AssetID) containing model predictors
             returns: Pandas series with multi-index of (TimeStamp, AssetID) containing asset returns
         """
-        residuals = returns - model.predict(features)
+        residuals = returns.values - model.predict(features).flatten()
+        residuals = pd.DataFrame(residuals, index = returns.index, columns = ['resid'])
         self.return_residuals = pd.concat([self.return_residuals, residuals])
     
     def weighted_cov(self, returns, weights):
@@ -105,7 +101,7 @@ class risk_models:
             if weights:
                 return self.weighted_cov(return_df.values, weights)
             
-    def vol_fit_predict(self, model, model_params = None, min_obs = 1):
+    def vol_fit_predict(self, model, universe, model_params = None, min_obs = 1):
         """
         Fits a model to the time series of each stock's residuals and forecasts next periods volatility.
         
@@ -115,9 +111,9 @@ class risk_models:
             min_obs: Int specifing the minimum number of residuals to observe per asset before fitting a volatility model
         """
         
-        current_time = self.return_residuals.index.get_level_values(0).unique().sort_values()[-1]            
-        universe = self.return_residuals.loc[pd.IndexSlice[current_time,:],:].index.get_level_values(1)
-        trailing_vol = (self.return_residuals.loc[pd.IndexSlice[:current_time, universe],:]**2)
+        trailing_vol = self.return_residuals.loc[pd.IndexSlice[:, self.return_residuals.index.isin(universe, level = 1)],:]
+        trailing_vol = trailing_vol ** 2
+                
         vol_forecasts = pd.Series(index = universe)
         
         #fitting model to avg of residuals over time for those series with insufficient data
@@ -146,6 +142,8 @@ class risk_models:
             else:
                 vol_forecasts[key] = avg_fcast
         
+        vol_forecasts.fillna(avg_fcast, inplace = True)
+        
         return vol_forecasts
 
     def risk_model(self, vol_model, features, vol_model_params = None,  factor_cov_params = None, min_obs = None):
@@ -160,7 +158,8 @@ class risk_models:
             min_obs: Int specifing the minimum number of residuals to observe per asset before fitting a volatility model
         """
         
-        idiosyncratic_vol = np.diag(self.vol_fit_predict(vol_model, model_params = vol_model_params).values.flatten())
+        univ = features.index.get_level_values(1).unique()
+        idiosyncratic_vol = np.diag(self.vol_fit_predict(model = vol_model, universe = univ, model_params = vol_model_params).values.flatten())
         
         if factor_cov_params == None:
             stock_cov = self.factor_cov()
@@ -172,10 +171,4 @@ class risk_models:
         
         return stock_cov
     
-
-        
-        
-        
-        
-        
-        
+    
