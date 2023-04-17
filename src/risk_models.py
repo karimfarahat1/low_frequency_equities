@@ -4,56 +4,40 @@ import numpy as np
 from copy import deepcopy
 
 class risk_models:
-    def __init__(self, factor_risk_model = None, models = None, features = None, returns = None):
-        """
-        Arguments:
-            factor_risk_model: Logical indicating intention to use a factor model to compute covariance
-            models: Dictionary with key TimeStamp and value an object with .coef_ attribute or indexable by 'model' with .coef_ attribute
-            features: Pandas dataframe with multi-index of (TimeStamp, AssetID) containing model predictors
-            returns: Pandas series with multi-index of (TimeStamp, AssetID) containing asset returns
-        """        
-        
+    def __init__(self):
         self.factor_returns = {}
-        self.return_residuals = {}
-        
-        if factor_risk_model:
-            for key in models:
-                self.store_factor_returns(models[key], key)
-        
-        if type(features) != type(None) and type(returns) != type(None):
-            self.return_residuals = pd.DataFrame([np.nan] * len(returns.index), index = returns.index, columns = ['resid'])
+        self.return_residuals = pd.DataFrame()
             
-            self.returns = []
-
-            for key in models:
-                model = models[key]
-                feats = features.loc[pd.IndexSlice[key,:],:]
-                rtns = returns.loc[pd.IndexSlice[key,:]]
-                self.return_residuals.loc[pd.IndexSlice[key, :]] = rtns.values - model.predict(feats).flatten()
-                self.returns.append(rtns.values)
-            
-    def store_factor_returns(self, model, date):
+    def store_factor_returns(self, models):
         """
         Arguments:
-            model: Either object with .coef_ attribute or object indexable by 'model' with .coef_ attribute (e.g. sklearn pipeline object)
-            date: Str indicating TimeStamp
+            model: Dictionary with timestamps as keys and values an object with .coef_ attribute 
+                or object indexable by 'model' with .coef_ attribute (e.g. sklearn pipeline object)
         """
-        try:
-            coefs = model.coef_.flatten()
-        except:
-            coefs = model['model'].coef_.flatten()
-        
-        self.factor_returns[date] = coefs
+        for date in models:
+            model = models[date]
+            
+            try:
+                coefs = model.coef_.flatten()
+            except:
+                coefs = model['model'].coef_.flatten()
+                
+            self.factor_returns[date] = coefs
     
-    def store_residuals(self, model, features, returns):
+    def store_residuals(self, models, features, returns):
         """        
         Arguments:
             model: Object with .predict() method
             features: Pandas dataframe with multi-index of (TimeStamp, AssetID) containing model predictors
             returns: Pandas series with multi-index of (TimeStamp, AssetID) containing asset returns
         """
-        residuals = returns.values - model.predict(features).flatten()
-        residuals = pd.DataFrame(residuals, index = returns.index, columns = ['resid'])
+        residuals = pd.DataFrame([np.nan] * len(returns.index), index = returns.index, columns = ['resid'])
+
+        for key, feats in features.groupby('TimeStamp'):
+            model = models[key]
+            rtns = returns.loc[pd.IndexSlice[key,:]]
+            residuals.loc[pd.IndexSlice[key, :]] = rtns.values - model.predict(feats).flatten()
+    
         self.return_residuals = pd.concat([self.return_residuals, residuals])
     
     def weighted_cov(self, returns, weights):
