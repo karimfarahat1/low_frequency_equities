@@ -1,3 +1,4 @@
+from arch import arch_model
 
 class mean_vol:
     def __init__(self, sq_residuals, halflife = None):
@@ -27,20 +28,17 @@ class arch_wrapper:
         Acts as a wrapper to the ARCH library available from pip, putting it in an appropriate form for our library
         
         Arguments:
-            model:
             sq_residuals:
             model_params:
         """
-        model = model_params['model']
-        self.model = model
         self.model_params = model_params
         self.data = sq_residuals
     
     def fit(self):
         if self.model_params == None:    
-            self.model = self.model(self.data, **self.model_params).fit()
+            self.model = arch_model(self.data).fit()
         else:
-            self.model = self.model(self.data).fit()
+            self.model = arch_model(self.data, **self.model_params).fit()
 
     def predict(self):
         return self.model.forecast(reindex=False).variance.values.flatten()[0]
