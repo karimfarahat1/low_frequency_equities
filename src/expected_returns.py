@@ -38,7 +38,7 @@ class expected_returns:
                 cloned_model = deepcopy(model)
                 self.models[time] = cloned_model.fit(features.loc[pd.IndexSlice[training_window,:]], returns.loc[pd.IndexSlice[training_window, :]])
         
-    def forecast(self, features, aggregate = True, weights = None):
+    def predict(self, features, aggregate = True, weights = None):
         """
         Supports prediction via panel regression or taking linear combinations of predictions from a series of models fit to the cross-section.
         
