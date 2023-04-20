@@ -121,7 +121,7 @@ class risk_models:
         Computes stock covariance either directly with an estimator such as Ledoit-Wolf or via a factor model
         
         Arguments:
-            returns: 
+            returns: Pandas series with multi-index of (TimeStamp, AssetID)
             vol_model: Object with .fit() and .predict() methods
             vol_model_params: Dict containing kwargs for vol_model
             vol_min_obs: Int specifing the minimum number of residuals to observe per asset before fitting a volatility model

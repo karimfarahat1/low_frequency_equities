@@ -28,17 +28,17 @@ class arch_wrapper:
         Acts as a wrapper to the ARCH library available from pip, putting it in an appropriate form for our library
         
         Arguments:
-            sq_residuals:
-            model_params:
+            sq_residuals: Pandas dataframe with multi-index of (TimeStamp, AssetID) containing squared residuals
+            model_params: Dict containing kwargs for arch_model
         """
         self.model_params = model_params
         self.data = sq_residuals
     
     def fit(self):
         if self.model_params == None:    
-            self.model = arch_model(self.data).fit()
+            self.model = arch_model(self.data.values.flatten(), rescale = True).fit(disp = False)
         else:
-            self.model = arch_model(self.data, **self.model_params).fit()
+            self.model = arch_model(self.data.values.flatten(), **self.model_params, rescale = True).fit(disp = False)
 
     def predict(self):
-        return self.model.forecast(reindex=False).variance.values.flatten()[0]
+        return self.model.forecast(reindex=False).variance.values.flatten()[0] / (self.model.scale ** 2)

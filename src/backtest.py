@@ -80,18 +80,19 @@ class backtest:
         
         return features, returns
     
-    def compute_stat(self, stat_calc, stat_name):
+    def compute_stat(self, stat_calcs, stat_names):
         """
         Computes a given statistic for each strategy stores the results in the self.statistics attribute
         
         Arguments:
-            stat_calc: A function to compute a performance summary statistic given the return series
-            stat_name: Key used to store the statistic in self.statistics 
+            stat_calc: A list of functions to compute a performance summary statistic given the return series
+            stat_name: A list of keys used to store the statistic in self.statistics 
         """     
-        self.statistics[stat_name] = {}
-        
-        for strat, returns in self.statistics['returns'].items():
-            self.statistics[stat_name][strat] = stat_calc(returns)
+        for calc, name in zip(stat_calcs, stat_names):
+            self.statistics[name] = {}
+            
+            for strat, returns in self.statistics['returns'].items():
+                self.statistics[name][strat] = calc(returns)
             
     def plot_stat(self, stat_name):
         """
